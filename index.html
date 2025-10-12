@@ -105,7 +105,7 @@
                     Whether you crave a smooth latte, a creamy matcha, or something new and bold — your next favorite drink is just a tap away.
                 </p>
                 <p class="font-extrabold text-text-dark mt-3">
-                    
+                    Stay Zen. Stay Zilla. 💚
                     <span class="block text-sm font-semibold text-gray-700 mt-1">🕘 Open daily: 1 PM – 2 PM (Lunch Hour)</span>
                 </p>
                 <!-- Shop Status Display (Customer Facing) -->
@@ -220,14 +220,16 @@
         function toggleItemSoldOut(itemId) {
             if (!isOwnerMode) return;
             
-            const currentStatus = itemSoldOutStatus[itemId];
+            // FIX: Ensure the current value is strictly a boolean before negation.
+            const currentStatus = !!itemSoldOutStatus[itemId]; 
             itemSoldOutStatus[itemId] = !currentStatus;
-            localStorage.setItem('itemSoldOutStatus', JSON.stringify(itemSoldOutStatus));
+            
+            // Clear quantity when changing status to prevent the item remaining in the current order
+            orderQuantities[itemId] = 0;
 
-            // Force update of quantities and UI
+            localStorage.setItem('itemSoldOutStatus', JSON.stringify(itemSoldOutStatus));
             renderMenu(); 
             updateSummary(); 
-            // Optional: Provide visual feedback that toggle worked (e.g., flash the button)
         }
 
         /**
@@ -316,8 +318,9 @@
                 }
 
                 // Owner toggle button HTML
+                // ADDED: relative z-20 to ensure clickability over the z-10 sold out overlay
                 const ownerToggle = isOwnerMode ? `
-                    <button class="ml-4 p-1 text-xs font-semibold rounded-sm transition-colors duration-150 border-2 ${isItemSoldOut ? 'bg-red-600 text-white border-red-800' : 'bg-logo-green text-logo-purple border-logo-purple'}"
+                    <button class="relative z-20 ml-4 p-1 text-xs font-semibold rounded-sm transition-colors duration-150 border-2 ${isItemSoldOut ? 'bg-red-600 text-white border-red-800' : 'bg-logo-green text-logo-purple border-logo-purple'}"
                         onclick="event.stopPropagation(); toggleItemSoldOut(${item.id})">
                         ${isItemSoldOut ? 'RE-STOCK' : 'SOLD OUT'}
                     </button>
@@ -523,4 +526,3 @@
     </script>
 </body>
 </html>
-
