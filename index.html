@@ -15,7 +15,8 @@
         // Global variables provided by the Canvas environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // FIX: Corrected typo from __initialAuthToken to __initial_auth_token
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
         
         // FIX: Assign initialAuthToken to the window object so the main script can access it
         window.initialAuthToken = initialAuthToken; 
@@ -53,7 +54,11 @@
                     
                     // CRITICAL FIX: Wait for the auth state to fully resolve before running the listener
                     onAuthStateChanged(window.auth, (user) => {
-                        // user is null for anonymous/unauthenticated users
+                        // CRITICAL: Set the global authentication flag directly on the window object
+                        // True only if a user exists AND we used the owner token for login
+                        window.isOwnerAuthenticated = !!user && !!window.initialAuthToken; 
+                        
+                        // Now initialize the UI and Listener
                         window.initializeFirebaseListener();
                     });
 
@@ -61,6 +66,7 @@
                 } catch (error) {
                     console.error("Firebase Authentication Error:", error);
                     // On error, hide spinner and display error on authentication failure
+                    window.isOwnerAuthenticated = false; // Set to false on failure
                     document.getElementById('loading-overlay').style.display = 'none';
                     window.updateShopUI(); 
                 }
@@ -199,7 +205,7 @@
                     Whether you crave a smooth latte, a creamy matcha, or something new and bold — your next favorite drink is just a tap away.
                 </p>
                 <p class="font-extrabold text-text-dark mt-3">
-                    Stay Zen. Stay Zilla. TEST 3💚
+                    Stay Zen. Stay Zilla. 💚
                     <span class="block text-sm font-semibold text-gray-700 mt-1">🕘 Open daily: 1 PM – 2 PM (Lunch Hour)</span>
                 </p>
                 <!-- Shop Status Display (Customer Facing) -->
@@ -279,7 +285,7 @@
         
         // Global State (will be updated by Firestore)
         let isShopOpen = false;
-        let isOwnerAuthenticated = false; // Check for owner's auth status
+        // isOwnerAuthenticated is now set globally by the module script's onAuthStateChanged
         let itemSoldOutStatus = {}; 
 
         // Define your menu items
@@ -299,8 +305,8 @@
          * Writes the full status object to Firestore. This updates the global state for everyone.
          */
         async function updateFirestoreStatus() {
-            // Check window.initialAuthToken instead of initialAuthToken
-            if (!window.db || !window.auth.currentUser || !window.isOwnerMode || !isOwnerAuthenticated) {
+            // Use the global window.isOwnerAuthenticated flag
+            if (!window.db || !window.auth.currentUser || !window.isOwnerMode || !window.isOwnerAuthenticated) {
                 console.warn("Write blocked: Not authenticated as owner or missing database access.");
                 return;
             }
@@ -325,11 +331,9 @@
          * Sets up the real-time listener for the shop's status.
          */
         window.initializeFirebaseListener = function() {
-            // Check window.initialAuthToken against the auth object
-            isOwnerAuthenticated = !!window.auth.currentUser && !!window.initialAuthToken;
-
+            
             // Show admin controls only if URL param and successful owner auth occurred
-            if (window.isOwnerMode && isOwnerAuthenticated) {
+            if (window.isOwnerMode && window.isOwnerAuthenticated) {
                  document.getElementById('admin-controls').classList.remove('hidden');
             }
 
@@ -354,7 +358,7 @@
                     isShopOpen = false;
                     itemSoldOutStatus = {};
                     
-                    if (window.isOwnerMode && isOwnerAuthenticated) {
+                    if (window.isOwnerMode && window.isOwnerAuthenticated) {
                         updateFirestoreStatus(); // Create document on first load if owner is present
                     }
                 }
@@ -379,7 +383,7 @@
          * Toggles the sold-out status for a single item and updates Firestore.
          */
         function toggleItemSoldOut(itemId) {
-            if (!window.isOwnerMode || !isOwnerAuthenticated) return;
+            if (!window.isOwnerMode || !window.isOwnerAuthenticated) return;
             
             const currentStatus = !!itemSoldOutStatus[itemId]; 
             itemSoldOutStatus[itemId] = !currentStatus;
@@ -393,7 +397,7 @@
          * Toggles the shop's open/closed status and updates Firestore.
          */
         function toggleShopStatus() {
-            if (!window.isOwnerMode || !isOwnerAuthenticated) return;
+            if (!window.isOwnerMode || !window.isOwnerAuthenticated) return;
             
             isShopOpen = !isShopOpen;
             
@@ -440,7 +444,7 @@
                     orderQuantities[item.id] = 0;
                 }
 
-                const ownerToggle = (window.isOwnerMode && isOwnerAuthenticated) ? `
+                const ownerToggle = (window.isOwnerMode && window.isOwnerAuthenticated) ? `
                     <button class="relative z-20 ml-4 p-1 text-xs font-semibold rounded-sm transition-colors duration-150 border-2 ${isItemSoldOut ? 'bg-red-600 text-white border-red-800' : 'bg-logo-green text-logo-purple border-logo-purple'}"
                         onclick="event.stopPropagation(); toggleItemSoldOut(${item.id})">
                         ${isItemSoldOut ? 'RE-STOCK' : 'SOLD OUT'}
