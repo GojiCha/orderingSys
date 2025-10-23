@@ -41,34 +41,26 @@
             
             // Authentication and Listener Setup
             (async () => {
-                let authSuccessful = false;
                 try {
+                    // Sign in with custom token (Owner) or anonymously (Customer)
                     if (window.initialAuthToken) {
                         await signInWithCustomToken(window.auth, window.initialAuthToken);
-                        authSuccessful = true;
-                        console.log("Firebase signed in with custom token (Owner).");
+                        console.log("Firebase sign-in initiated (Owner).");
                     } else {
                         await signInAnonymously(window.auth);
-                        console.log("Firebase signed in anonymously (Customer).");
+                        console.log("Firebase sign-in initiated (Customer).");
                     }
                     
-                    // NEW FIX: Set the global flag for the main script
-                    window.isOwnerAuthenticated = authSuccessful; 
-                    
-                    // NEW FIX: Show admin controls immediately if owner mode is active and auth succeeded
-                    if (window.isOwnerMode && authSuccessful) {
-                         document.getElementById('admin-controls').classList.remove('hidden');
-                    }
+                    // CRITICAL FIX: Wait for the auth state to fully resolve before running the listener
+                    onAuthStateChanged(window.auth, (user) => {
+                        // user is null for anonymous/unauthenticated users
+                        window.initializeFirebaseListener();
+                    });
 
-                    // After successful authentication, initialize the listener
-                    window.initializeFirebaseListener();
 
                 } catch (error) {
                     console.error("Firebase Authentication Error:", error);
-                    // On error, ensure the owner flag is false
-                    window.isOwnerAuthenticated = false; 
-                    
-                    // Hide spinner and display error on authentication failure
+                    // On error, hide spinner and display error on authentication failure
                     document.getElementById('loading-overlay').style.display = 'none';
                     window.updateShopUI(); 
                 }
@@ -199,7 +191,7 @@
 
             <!-- Full Shop Introduction -->
             <div class="text-center text-base mb-6 border-b border-gray-300 pb-4">
-                <h2 class="text-xl font-bold text-text-dark mb-2">Welcome to Goji Cha!</h2>
+                <h2 class="text-xl font-bold text-text-dark mb-2">👋 Welcome to Goji Cha!</h2>
                 
                 <p class="text-gray-700 mb-2">
                     Unleash your inner calm with a playful kick — where matcha meets attitude.
@@ -207,7 +199,7 @@
                     Whether you crave a smooth latte, a creamy matcha, or something new and bold — your next favorite drink is just a tap away.
                 </p>
                 <p class="font-extrabold text-text-dark mt-3">
-                    Stay Zen. Stay Zilla. TEST 2💚
+                    Stay Zen. Stay Zilla. TEST 3💚
                     <span class="block text-sm font-semibold text-gray-700 mt-1">🕘 Open daily: 1 PM – 2 PM (Lunch Hour)</span>
                 </p>
                 <!-- Shop Status Display (Customer Facing) -->
@@ -333,7 +325,7 @@
          * Sets up the real-time listener for the shop's status.
          */
         window.initializeFirebaseListener = function() {
-            // Check window.initialAuthToken instead of initialAuthToken
+            // Check window.initialAuthToken against the auth object
             isOwnerAuthenticated = !!window.auth.currentUser && !!window.initialAuthToken;
 
             // Show admin controls only if URL param and successful owner auth occurred
@@ -343,7 +335,7 @@
 
             // Immediately hide loading and set default CLOSED state
             document.getElementById('loading-overlay').style.display = 'none';
-            isShopOpen = false; // Default safe state for customers
+            // isShopOpen = false; // We let the Firestore read set the state
             updateShopUI(); 
             renderMenu();
 
@@ -628,7 +620,6 @@
         }
 
         // --- INITIALIZATION ---
-        // window.onload only calls initializeShopStatus, which now relies on the Firebase listener firing
         window.onload = () => {
              // The Firebase module script handles the authentication and calls initializeFirebaseListener 
              // which manages the UI. If Firebase is missing or slow, the initial status is rendered immediately.
