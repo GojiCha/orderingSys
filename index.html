@@ -6,73 +6,6 @@
     <title>Goji Cha - Awaken Your Inner Kaiju</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global variables provided by the Canvas environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        // FIX: Corrected typo from __initialAuthToken to __initial_auth_token
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
-        
-        // FIX: Assign initialAuthToken to the window object so the main script can access it
-        window.initialAuthToken = initialAuthToken; 
-        
-        // Flag to indicate if owner mode is active via URL parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        window.isOwnerMode = urlParams.get('owner') === 'true';
-
-        if (Object.keys(firebaseConfig).length === 0) {
-            console.error("Firebase configuration is missing. Cannot initialize database.");
-            // Hide spinner and force display the default UI
-            document.addEventListener('DOMContentLoaded', () => {
-                document.getElementById('loading-overlay').style.display = 'none';
-                window.updateShopUI(); 
-            });
-        } else {
-            const app = initializeApp(firebaseConfig);
-            window.db = getFirestore(app);
-            window.auth = getAuth(app);
-            
-            // Attach Firestore functions to the window so the main script block can access them
-            window.FStore = { doc, setDoc, onSnapshot };
-            
-            // Authentication and Listener Setup
-            (async () => {
-                try {
-                    // Sign in with custom token (Owner) or anonymously (Customer)
-                    if (window.initialAuthToken) {
-                        await signInWithCustomToken(window.auth, window.initialAuthToken);
-                        console.log("Firebase sign-in initiated (Owner).");
-                    } else {
-                        await signInAnonymously(window.auth);
-                        console.log("Firebase sign-in initiated (Customer).");
-                    }
-                    
-                    // CRITICAL FIX: Wait for the auth state to fully resolve before running the listener
-                    onAuthStateChanged(window.auth, (user) => {
-                        // CRITICAL: Set the global authentication flag directly on the window object
-                        // True only if a user exists AND we used the owner token for login
-                        window.isOwnerAuthenticated = !!user && !!window.initialAuthToken; 
-                        
-                        // Now initialize the UI and Listener
-                        window.initializeFirebaseListener();
-                    });
-
-
-                } catch (error) {
-                    console.error("Firebase Authentication Error:", error);
-                    // On error, hide spinner and display error on authentication failure
-                    window.isOwnerAuthenticated = false; // Set to false on failure
-                    document.getElementById('loading-overlay').style.display = 'none';
-                    window.updateShopUI(); 
-                }
-            })();
-        }
-    </script>
     <!-- Configure Tailwind for the Gojira/Retro theme -->
     <script>
         tailwind.config = {
@@ -134,50 +67,11 @@
         .sold-out {
             @apply opacity-50 pointer-events-none;
         }
-        /* Style for closed shop state */
-        .shop-closed {
-            /* Dim and disable all interaction on the content when closed */
-            opacity: 0.6; 
-            pointer-events: none;
-        }
-        /* Loading overlay to show while Firebase connects */
-        #loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.5rem;
-            z-index: 1000;
-        }
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 4px solid #81EE4A;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body class="bg-logo-gray min-h-screen p-4 font-sans flex justify-center text-text-dark">
     
-    <!-- Loading Overlay -->
-    <div id="loading-overlay">
-        <div class="flex flex-col items-center">
-            <div class="spinner mb-4"></div>
-            Loading Shop Status...
-        </div>
-    </div>
+    <!-- Removed Loading Overlay -->
 
     <div class="w-full max-w-lg bg-card-bg shadow-2xl border-4 border-text-dark rounded-lg overflow-hidden">
         
@@ -205,22 +99,16 @@
                     Whether you crave a smooth latte, a creamy matcha, or something new and bold — your next favorite drink is just a tap away.
                 </p>
                 <p class="font-extrabold text-text-dark mt-3">
-                    Stay Zen. Stay Zilla. 💚
-                    <span class="block text-sm font-semibold text-gray-700 mt-1">🕘 Open daily: 1 PM – 2 PM (Lunch Hour)</span>
+                    Stay Zen. Stay Zilla. TEST 4💚
+                    <span class="block text-sm font-semibold text-gray-700 mt-1">🕘 Open daily: 1 PM – 2 PM </span>
                 </p>
-                <!-- Shop Status Display (Customer Facing) -->
-                <div id="shop-status-display" class="mt-2 text-xl font-black rounded-sm tracking-wider"></div>
+                <!-- Removed Shop Status Display -->
             </div>
 
-            <!-- Admin Toggle (Owner Control) - HIDDEN BY DEFAULT -->
-            <div id="admin-controls" class="text-center mb-6 hidden">
-                <button onclick="toggleShopStatus()" id="admin-toggle" class="bg-logo-purple text-white p-2 rounded-none text-sm font-bold shadow-md hover:bg-logo-green hover:text-logo-purple">
-                    Shop Toggle: <span id="admin-status-text">CLOSED</span>
-                </button>
-            </div>
+            <!-- Removed Admin Toggle Controls -->
 
-            <!-- Content Wrapper - Dimmed and disabled when shop is closed -->
-            <div id="order-content" class="transition-opacity duration-300">
+            <!-- Content Wrapper - Always enabled -->
+            <div id="order-content">
                 <!-- Menu Section -->
                 <main id="menu-container" class="space-y-4 mb-6">
                     <!-- Menu items will be injected here by JavaScript -->
@@ -281,12 +169,12 @@
     <script>
         // --- CONFIGURATION ---
         const WHATSAPP_NUMBER = "60126915105"; 
-        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; 
         
-        // Global State (will be updated by Firestore)
-        let isShopOpen = false;
-        // isOwnerAuthenticated is now set globally by the module script's onAuthStateChanged
-        let itemSoldOutStatus = {}; 
+        // Global State
+        // App is always considered OPEN, so no isShopOpen needed
+        const urlParams = new URLSearchParams(window.location.search);
+        let isOwnerMode = urlParams.get('owner') === 'true'; // Used for toggle visibility
+        let itemSoldOutStatus = {}; // { 1: false, 2: true, ... } - Item stock status
 
         // Define your menu items
         const menu = [
@@ -299,152 +187,70 @@
         // State to track item quantities
         const orderQuantities = {}; 
 
-        // --- FIREBASE FUNCTIONS ---
+        // --- LOCAL STORAGE & INIT LOGIC (for Sold Out status) ---
 
         /**
-         * Writes the full status object to Firestore. This updates the global state for everyone.
+         * Loads the per-item sold-out status from local storage.
          */
-        async function updateFirestoreStatus() {
-            // Use the global window.isOwnerAuthenticated flag
-            if (!window.db || !window.auth.currentUser || !window.isOwnerMode || !window.isOwnerAuthenticated) {
-                console.warn("Write blocked: Not authenticated as owner or missing database access.");
-                return;
-            }
-
-            const statusRef = window.FStore.doc(window.db, `artifacts/${APP_ID}/public/data/shop_status/current`);
-            
-            const newStatus = {
-                isShopOpen: isShopOpen,
-                itemSoldOutStatus: itemSoldOutStatus,
-                lastUpdated: new Date().toISOString()
-            };
-
-            try {
-                await window.FStore.setDoc(statusRef, newStatus, { merge: true });
-                console.log("Firestore status updated successfully.");
-            } catch (error) {
-                console.error("Error setting Firestore document. Check Firestore Rules:", error);
+        function loadItemSoldOutStatus() {
+            const savedStatus = localStorage.getItem('itemSoldOutStatus');
+            if (savedStatus) {
+                itemSoldOutStatus = JSON.parse(savedStatus);
+            } else {
+                // Initialize all to false if nothing saved
+                menu.forEach(item => itemSoldOutStatus[item.id] = false);
             }
         }
 
         /**
-         * Sets up the real-time listener for the shop's status.
-         */
-        window.initializeFirebaseListener = function() {
-            
-            // Show admin controls only if URL param and successful owner auth occurred
-            if (window.isOwnerMode && window.isOwnerAuthenticated) {
-                 document.getElementById('admin-controls').classList.remove('hidden');
-            }
-
-            // Immediately hide loading and set default CLOSED state
-            document.getElementById('loading-overlay').style.display = 'none';
-            // isShopOpen = false; // We let the Firestore read set the state
-            updateShopUI(); 
-            renderMenu();
-
-            // Set up listener to pull the real state from the cloud
-            const statusRef = window.FStore.doc(window.db, `artifacts/${APP_ID}/public/data/shop_status/current`);
-            
-            const unsubscribe = window.FStore.onSnapshot(statusRef, (docSnapshot) => {
-                
-                if (docSnapshot.exists()) {
-                    const data = docSnapshot.data();
-                    
-                    isShopOpen = data.isShopOpen || false;
-                    itemSoldOutStatus = data.itemSoldOutStatus || {};
-                } else {
-                    // If no document exists, owner must create it.
-                    isShopOpen = false;
-                    itemSoldOutStatus = {};
-                    
-                    if (window.isOwnerMode && window.isOwnerAuthenticated) {
-                        updateFirestoreStatus(); // Create document on first load if owner is present
-                    }
-                }
-                
-                // Update UI based on the new, real global state
-                updateShopUI();
-                renderMenu();
-
-            }, (error) => {
-                console.error("Firestore Listener Error:", error);
-                // Display persistent error message if the listener fails after initialization
-                document.getElementById('shop-status-display').textContent = "CONNECTION FAILED";
-                document.getElementById('shop-status-display').className = "mt-2 text-xl font-black rounded-sm tracking-wider text-red-600";
-                unsubscribe(); // Stop listening on error
-            });
-        }
-
-
-        // --- LOCAL SHOP LOGIC ---
-
-        /**
-         * Toggles the sold-out status for a single item and updates Firestore.
+         * Toggles the sold-out status for a single item and saves to localStorage.
          */
         function toggleItemSoldOut(itemId) {
-            if (!window.isOwnerMode || !window.isOwnerAuthenticated) return;
+            if (!isOwnerMode) return;
             
+            // Toggle status (re-stock/sold out)
             const currentStatus = !!itemSoldOutStatus[itemId]; 
             itemSoldOutStatus[itemId] = !currentStatus;
             
-            orderQuantities[itemId] = 0; // Clear quantity when changing status
+            // Clear quantity when changing status to prevent the item remaining in the current order
+            orderQuantities[itemId] = 0;
 
-            updateFirestoreStatus();
+            // Save to browser storage
+            localStorage.setItem('itemSoldOutStatus', JSON.stringify(itemSoldOutStatus));
+            
+            // Rerender UI
+            renderMenu(); 
+            updateSummary(); 
         }
 
         /**
-         * Toggles the shop's open/closed status and updates Firestore.
+         * Initializes the app on load.
          */
-        function toggleShopStatus() {
-            if (!window.isOwnerMode || !window.isOwnerAuthenticated) return;
-            
-            isShopOpen = !isShopOpen;
-            
-            updateFirestoreStatus();
-        }
-        
-        /**
-         * Updates all UI elements (status text, dimmer, button) based on the current shop status.
-         */
-        function updateShopUI() {
-            const statusDisplay = document.getElementById('shop-status-display');
-            const adminToggleText = document.getElementById('admin-status-text');
-            const orderContent = document.getElementById('order-content');
-            
-            if (isShopOpen) {
-                // OPEN state
-                statusDisplay.textContent = "NOW OPEN";
-                statusDisplay.className = "mt-2 text-xl font-black rounded-sm tracking-wider text-logo-green";
-                adminToggleText.textContent = "OPEN";
-                orderContent.classList.remove('shop-closed');
-            } else {
-                // CLOSED state
-                statusDisplay.textContent = "CLOSED";
-                statusDisplay.className = "mt-2 text-xl font-black rounded-sm tracking-wider text-red-600";
-                adminToggleText.textContent = "CLOSED";
-                orderContent.classList.add('shop-closed');
-                // Reset quantities in memory when closed
-                menu.forEach(item => orderQuantities[item.id] = 0); 
-            }
-            
+        function initializeApp() {
+            loadItemSoldOutStatus();
+            renderMenu();
             updateSummary();
         }
 
-        // --- CORE FUNCTIONS (unchanged) ---
+        // --- CORE FUNCTIONS ---
 
+        /**
+         * Renders the menu items to the container.
+         */
         function renderMenu() {
             const container = document.getElementById('menu-container');
             container.innerHTML = menu.map(item => {
                 const isItemSoldOut = itemSoldOutStatus[item.id] || false;
-                const isDisabled = isItemSoldOut || !isShopOpen; 
+                // Item is disabled ONLY if sold out (no global status check)
+                const isDisabled = isItemSoldOut; 
                 const soldOutClass = isItemSoldOut ? 'sold-out' : ''; 
                 
                 if (isDisabled) {
                     orderQuantities[item.id] = 0;
                 }
 
-                const ownerToggle = (window.isOwnerMode && window.isOwnerAuthenticated) ? `
+                // Owner toggle button HTML is visible only in Owner Mode
+                const ownerToggle = isOwnerMode ? `
                     <button class="relative z-20 ml-4 p-1 text-xs font-semibold rounded-sm transition-colors duration-150 border-2 ${isItemSoldOut ? 'bg-red-600 text-white border-red-800' : 'bg-logo-green text-logo-purple border-logo-purple'}"
                         onclick="event.stopPropagation(); toggleItemSoldOut(${item.id})">
                         ${isItemSoldOut ? 'RE-STOCK' : 'SOLD OUT'}
@@ -485,7 +291,7 @@
                                     <!-- OWNER TOGGLE BUTTON -->
                                     ${ownerToggle}
                                     
-                                    <!-- Quantity Controls (Disabled if sold out or shop closed) -->
+                                    <!-- Quantity Controls (Disabled if sold out) -->
                                     <div class="flex items-center space-x-1 ml-auto">
                                         <button class="quantity-btn" 
                                                 onclick="updateQuantity(${item.id}, -1)"
@@ -514,9 +320,12 @@
             }).join('');
         }
 
+        /**
+         * Updates the quantity of a specific item.
+         */
         function updateQuantity(itemId, change) {
             const isItemSoldOut = itemSoldOutStatus[itemId] || false;
-            if (!isShopOpen || isItemSoldOut) return;
+            if (isItemSoldOut) return; // Only check sold out status
             
             let currentQty = orderQuantities[itemId] || 0;
             let newQty = currentQty + change;
@@ -531,6 +340,9 @@
             updateSummary();
         }
 
+        /**
+         * Calculates the total cost and updates the UI and button state.
+         */
         function updateSummary() {
             let totalCost = 0;
             let totalItems = 0; 
@@ -547,11 +359,15 @@
 
             document.getElementById('total-price').textContent = `RM ${totalCost.toFixed(2)}`;
             const confirmBtn = document.getElementById('confirm-button');
-            confirmBtn.disabled = totalItems === 0 || !isShopOpen; 
+            // Button is disabled if no items selected
+            confirmBtn.disabled = totalItems === 0; 
         }
 
+        /**
+         * Generates the order message and redirects to WhatsApp.
+         */
         function confirmOrder() {
-            if (!isShopOpen) return; 
+            // No shop open check needed as the app is always considered open
 
             if (WHATSAPP_NUMBER === "60123456789") {
                 document.getElementById('whatsapp-message').classList.remove('hidden');
@@ -624,10 +440,7 @@
         }
 
         // --- INITIALIZATION ---
-        window.onload = () => {
-             // The Firebase module script handles the authentication and calls initializeFirebaseListener 
-             // which manages the UI. If Firebase is missing or slow, the initial status is rendered immediately.
-        };
+        window.onload = initializeApp;
 
     </script>
 </body>
