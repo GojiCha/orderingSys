@@ -6,6 +6,7 @@
     <title>Goji Cha - Awaken Your Inner Kaiju</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- Configure Tailwind for the Gojira/Retro theme -->
     <script>
         tailwind.config = {
@@ -67,12 +68,16 @@
         .sold-out {
             @apply opacity-50 pointer-events-none;
         }
+        /* Style for closed shop state */
+        .shop-closed {
+            /* Dim and disable all interaction on the content when closed */
+            opacity: 0.6; 
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="bg-logo-gray min-h-screen p-4 font-sans flex justify-center text-text-dark">
     
-    <!-- Removed Loading Overlay -->
-
     <div class="w-full max-w-lg bg-card-bg shadow-2xl border-4 border-text-dark rounded-lg overflow-hidden">
         
         <!-- Header - Themed with Poster Art -->
@@ -93,18 +98,26 @@
             <div class="text-center text-base mb-6 border-b border-gray-300 pb-4">
                 <h2 class="text-xl font-bold text-text-dark mb-2">Welcome to Goji Cha!</h2>
                 
-                
-                <p class="font-extrabold text-text-dark mt-3">
-                    
-                    <span class="block text-sm font-semibold text-gray-700 mt-1">🕘 Open daily: 1 PM – 2 PM </span>
+                <p class="text-gray-700 mb-2">
+                    Order your favorite matcha here 
                 </p>
-                <!-- Removed Shop Status Display -->
+                <p class="font-extrabold text-text-dark mt-3">
+                    Fresh and ready for you!
+                    <span class="block text-sm font-semibold text-gray-700 mt-1">🕘 Open daily: 1 PM – 2 PM (Lunch Hour)</span>
+                </p>
+                <!-- Shop Status Display (Customer Facing) -->
+                <div id="shop-status-display" class="mt-2 text-xl font-black rounded-sm tracking-wider"></div>
             </div>
 
-            <!-- Removed Admin Toggle Controls -->
+            <!-- Admin Guide - Replaces toggles, visible only to owner -->
+            <div id="admin-controls" class="text-center mb-6 hidden">
+                <div class="p-3 bg-logo-gray text-white text-sm rounded-none">
+                    ⚠️ **ADMIN MODE:** To change the shop status or sold-out items, you must **edit the `GLOBAL_SHOP_STATUS` variable directly in the `index.html` file on GitHub** and commit the changes.
+                </div>
+            </div>
 
-            <!-- Content Wrapper - Always enabled -->
-            <div id="order-content">
+            <!-- Content Wrapper - Dimmed and disabled when shop is closed -->
+            <div id="order-content" class="transition-opacity duration-300">
                 <!-- Menu Section -->
                 <main id="menu-container" class="space-y-4 mb-6">
                     <!-- Menu items will be injected here by JavaScript -->
@@ -166,91 +179,103 @@
         // --- CONFIGURATION ---
         const WHATSAPP_NUMBER = "60126915105"; 
         
-        // Global State
-        // App is always considered OPEN, so no isShopOpen needed
-        const urlParams = new URLSearchParams(window.location.search);
-        let isOwnerMode = urlParams.get('owner') === 'true'; // Used for toggle visibility
-        let itemSoldOutStatus = {}; // { 1: false, 2: true, ... } - Item stock status
+        // =========================================================================
+        // MANUAL SHOP STATUS CONTROL (Edit these variables on GitHub to change status)
+        // =========================================================================
+        
+        const GLOBAL_SHOP_STATUS = {
+            // Set to true to open the shop, false to close it.
+            isShopOpen: false, 
+            
+            // Set the status for each item ID below: true = SOLD OUT, false = IN STOCK
+            itemSoldOutStatus: {
+                1: false, // Matcha Latte
+                2: false, // Strawberry Matcha
+                3: false, // Earl Grey Matcha
+                4: true, // Lemonade Matcha
+            }
+        };
+        
+        // =========================================================================
+        // END MANUAL SHOP STATUS CONTROL
+        // =========================================================================
+
+        // Global State (Read-only variables derived from the config above)
+        let isShopOpen = GLOBAL_SHOP_STATUS.isShopOpen;
+        let itemSoldOutStatus = GLOBAL_SHOP_STATUS.itemSoldOutStatus; 
 
         // Define your menu items
         const menu = [
             { id: 1, name: "Matcha Latte", price: 10.00, desc: "Classic iced pure matcha, sweetened/unsweetened, & Oatside milk.", imageUrl: "https://placehold.co/80x80/4CAF50/FFFFFF?text=LATTE" },
             { id: 2, name: "Strawberry Matcha", price: 13.00, desc: "Sweet strawberry puree layered with cool matcha & Oatside milk.", imageUrl: "https://placehold.co/80x80/D32F2F/4CAF50?text=STRAW" },
             { id: 3, name: "Earl Grey Matcha", price: 11.00, desc: "Creamy matcha layered with Earl Grey syrup & Oatside milk.", imageUrl: "https://placehold.co/80x80/A1887F/4CAF50?text=EARL" },
-            //{ id: 4, name: "Lemonade Matcha", price: 12.00, desc: "Tangy fresh sparkling lemonade topped with vibrant matcha.", imageUrl: "https://placehold.co/80x80/FFC107/4CAF50?text=LEMON" },
+            { id: 4, name: "Lemonade Matcha", price: 12.00, desc: "Tangy fresh sparkling lemonade topped with vibrant matcha.", imageUrl: "https://placehold.co/80x80/FFC107/4CAF50?text=LEMON" },
         ];
         
         // State to track item quantities
         const orderQuantities = {}; 
 
-        // --- LOCAL STORAGE & INIT LOGIC (for Sold Out status) ---
-
+        // --- SHOP STATUS LOGIC (Simplified) ---
+        
         /**
-         * Loads the per-item sold-out status from local storage.
-         */
-        function loadItemSoldOutStatus() {
-            const savedStatus = localStorage.getItem('itemSoldOutStatus');
-            if (savedStatus) {
-                itemSoldOutStatus = JSON.parse(savedStatus);
-            } else {
-                // Initialize all to false if nothing saved
-                menu.forEach(item => itemSoldOutStatus[item.id] = false);
-            }
-        }
-
-        /**
-         * Toggles the sold-out status for a single item and saves to localStorage.
-         */
-        function toggleItemSoldOut(itemId) {
-            if (!isOwnerMode) return;
-            
-            // Toggle status (re-stock/sold out)
-            const currentStatus = !!itemSoldOutStatus[itemId]; 
-            itemSoldOutStatus[itemId] = !currentStatus;
-            
-            // Clear quantity when changing status to prevent the item remaining in the current order
-            orderQuantities[itemId] = 0;
-
-            // Save to browser storage
-            localStorage.setItem('itemSoldOutStatus', JSON.stringify(itemSoldOutStatus));
-            
-            // Rerender UI
-            renderMenu(); 
-            updateSummary(); 
-        }
-
-        /**
-         * Initializes the app on load.
+         * Initializes shop status and checks for owner access.
          */
         function initializeApp() {
-            loadItemSoldOutStatus();
-            renderMenu();
+             // 1. Check for Owner Access Parameter (?owner=true)
+            const urlParams = new URLSearchParams(window.location.search);
+            const isOwnerMode = urlParams.get('owner') === 'true';
+            
+            if (isOwnerMode) {
+                document.getElementById('admin-controls').classList.remove('hidden');
+            }
+            
+            // 2. Update UI based on the static config
+            updateShopUI();
+            renderMenu(isOwnerMode); 
+        }
+        
+        /**
+         * Updates all UI elements (status text, dimmer, button) based on the current shop status.
+         */
+        function updateShopUI() {
+            const statusDisplay = document.getElementById('shop-status-display');
+            const orderContent = document.getElementById('order-content');
+            
+            if (isShopOpen) {
+                // OPEN state
+                statusDisplay.textContent = "NOW OPEN";
+                statusDisplay.className = "mt-2 text-xl font-black rounded-sm tracking-wider text-logo-green";
+                orderContent.classList.remove('shop-closed');
+            } else {
+                // CLOSED state
+                statusDisplay.textContent = "CLOSED";
+                statusDisplay.className = "mt-2 text-xl font-black rounded-sm tracking-wider text-red-600";
+                orderContent.classList.add('shop-closed');
+                // Reset quantities in memory when closed
+                menu.forEach(item => orderQuantities[item.id] = 0); 
+            }
+            
             updateSummary();
         }
 
         // --- CORE FUNCTIONS ---
 
-        /**
-         * Renders the menu items to the container.
-         */
-        function renderMenu() {
+        function renderMenu(isOwnerMode) {
             const container = document.getElementById('menu-container');
             container.innerHTML = menu.map(item => {
                 const isItemSoldOut = itemSoldOutStatus[item.id] || false;
-                // Item is disabled ONLY if sold out (no global status check)
-                const isDisabled = isItemSoldOut; 
+                const isDisabled = isItemSoldOut || !isShopOpen; 
                 const soldOutClass = isItemSoldOut ? 'sold-out' : ''; 
                 
                 if (isDisabled) {
                     orderQuantities[item.id] = 0;
                 }
 
-                // Owner toggle button HTML is visible only in Owner Mode
-                const ownerToggle = isOwnerMode ? `
-                    <button class="relative z-20 ml-4 p-1 text-xs font-semibold rounded-sm transition-colors duration-150 border-2 ${isItemSoldOut ? 'bg-red-600 text-white border-red-800' : 'bg-logo-green text-logo-purple border-logo-purple'}"
-                        onclick="event.stopPropagation(); toggleItemSoldOut(${item.id})">
-                        ${isItemSoldOut ? 'RE-STOCK' : 'SOLD OUT'}
-                    </button>
+                // Owner status text display (no longer a toggle)
+                const ownerStatus = isOwnerMode ? `
+                    <div class="relative z-20 ml-4 p-1 text-xs font-semibold rounded-sm transition-colors duration-150 border-2 ${isItemSoldOut ? 'bg-red-600 text-white border-red-800' : 'bg-logo-green text-logo-purple border-logo-purple'}">
+                        ${isItemSoldOut ? 'SOLD OUT' : 'IN STOCK'}
+                    </div>
                 ` : '';
 
 
@@ -284,8 +309,8 @@
                                 <div class="flex justify-between items-center mt-1">
                                     <p class="text-xl font-bold text-matcha-highlight">RM ${item.price.toFixed(2)}</p>
                                     
-                                    <!-- OWNER TOGGLE BUTTON -->
-                                    ${ownerToggle}
+                                    <!-- OWNER STATUS DISPLAY -->
+                                    ${ownerStatus}
                                     
                                     <!-- Quantity Controls (Disabled if sold out) -->
                                     <div class="flex items-center space-x-1 ml-auto">
@@ -316,12 +341,9 @@
             }).join('');
         }
 
-        /**
-         * Updates the quantity of a specific item.
-         */
         function updateQuantity(itemId, change) {
             const isItemSoldOut = itemSoldOutStatus[itemId] || false;
-            if (isItemSoldOut) return; // Only check sold out status
+            if (isItemSoldOut || !isShopOpen) return;
             
             let currentQty = orderQuantities[itemId] || 0;
             let newQty = currentQty + change;
@@ -336,9 +358,6 @@
             updateSummary();
         }
 
-        /**
-         * Calculates the total cost and updates the UI and button state.
-         */
         function updateSummary() {
             let totalCost = 0;
             let totalItems = 0; 
@@ -355,15 +374,11 @@
 
             document.getElementById('total-price').textContent = `RM ${totalCost.toFixed(2)}`;
             const confirmBtn = document.getElementById('confirm-button');
-            // Button is disabled if no items selected
-            confirmBtn.disabled = totalItems === 0; 
+            confirmBtn.disabled = totalItems === 0 || !isShopOpen; 
         }
 
-        /**
-         * Generates the order message and redirects to WhatsApp.
-         */
         function confirmOrder() {
-            // No shop open check needed as the app is always considered open
+            if (!isShopOpen) return; 
 
             if (WHATSAPP_NUMBER === "60123456789") {
                 document.getElementById('whatsapp-message').classList.remove('hidden');
