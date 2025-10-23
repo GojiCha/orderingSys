@@ -9,16 +9,28 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global variables provided by the Canvas environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // FIX: Assign initialAuthToken to the window object so the main script can access it
+        window.initialAuthToken = initialAuthToken; 
+        
+        // Flag to indicate if owner mode is active via URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        window.isOwnerMode = urlParams.get('owner') === 'true';
 
         if (Object.keys(firebaseConfig).length === 0) {
             console.error("Firebase configuration is missing. Cannot initialize database.");
+            // Hide spinner and force display the default UI
+            document.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('loading-overlay').style.display = 'none';
+                window.updateShopUI(); 
+            });
         } else {
             const app = initializeApp(firebaseConfig);
             window.db = getFirestore(app);
@@ -27,25 +39,25 @@
             // Attach Firestore functions to the window so the main script block can access them
             window.FStore = { doc, setDoc, onSnapshot };
             
-            // Sign in the user using the provided token (Owner) or anonymously (Customer)
+            // Authentication and Listener Setup
             (async () => {
                 try {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(window.auth, initialAuthToken);
+                    if (window.initialAuthToken) {
+                        await signInWithCustomToken(window.auth, window.initialAuthToken);
                         console.log("Firebase signed in with custom token (Owner).");
                     } else {
                         await signInAnonymously(window.auth);
                         console.log("Firebase signed in anonymously (Customer).");
                     }
-                    // Start listening for status updates after authentication
-                    // Use a slight delay to ensure UI elements are rendered
-                    setTimeout(window.initializeFirebaseListener, 100); 
+                    
+                    // After successful authentication, initialize the listener
+                    window.initializeFirebaseListener();
+
                 } catch (error) {
                     console.error("Firebase Authentication Error:", error);
-                    // Handle auth failure display
-                    const loadingOverlay = document.getElementById('loading-overlay');
-                    loadingOverlay.innerHTML = '<div class="text-red-500 bg-white p-4 rounded-lg shadow-xl">Authentication failed. Ordering may not function. Check console for details.</div>';
-                    setTimeout(() => loadingOverlay.style.display = 'none', 3000); 
+                    // Hide spinner and display error on authentication failure
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    window.updateShopUI(); 
                 }
             })();
         }
@@ -176,9 +188,13 @@
             <div class="text-center text-base mb-6 border-b border-gray-300 pb-4">
                 <h2 class="text-xl font-bold text-text-dark mb-2">Welcome to Goji Cha!</h2>
                 
-               
+                <p class="text-gray-700 mb-2">
+                    Unleash your inner calm with a playful kick — where matcha meets attitude.
+                    At Goji Cha, we serve handcrafted matcha inspired by Japanese street culture and monster-sized creativity.
+                    Whether you crave a smooth latte, a creamy matcha, or something new and bold — your next favorite drink is just a tap away.
+                </p>
                 <p class="font-extrabold text-text-dark mt-3">
-                    
+                    Stay Zen. Stay Zilla. TESTTTTT💚
                     <span class="block text-sm font-semibold text-gray-700 mt-1">🕘 Open daily: 1 PM – 2 PM (Lunch Hour)</span>
                 </p>
                 <!-- Shop Status Display (Customer Facing) -->
@@ -254,11 +270,11 @@
     <script>
         // --- CONFIGURATION ---
         const WHATSAPP_NUMBER = "60126915105"; 
-        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Re-use definition from Firebase block
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; 
         
         // Global State (will be updated by Firestore)
         let isShopOpen = false;
-        let isOwnerMode = false;
+        let isOwnerAuthenticated = false; // Check for owner's auth status
         let itemSoldOutStatus = {}; 
 
         // Define your menu items
@@ -273,18 +289,17 @@
         const orderQuantities = {}; 
 
         // --- FIREBASE FUNCTIONS ---
-        // Note: db, auth, and FStore are attached to the window object by the module script above
 
         /**
          * Writes the full status object to Firestore. This updates the global state for everyone.
          */
         async function updateFirestoreStatus() {
-            if (!window.db || !window.auth.currentUser || !isOwnerMode) {
-                console.warn("Cannot update Firestore: Not authenticated as owner.");
+            // Check window.initialAuthToken instead of initialAuthToken
+            if (!window.db || !window.auth.currentUser || !window.isOwnerMode || !isOwnerAuthenticated) {
+                console.warn("Write blocked: Not authenticated as owner or missing database access.");
                 return;
             }
 
-            // Using window.FStore functions now
             const statusRef = window.FStore.doc(window.db, `artifacts/${APP_ID}/public/data/shop_status/current`);
             
             const newStatus = {
@@ -294,11 +309,10 @@
             };
 
             try {
-                // Using window.FStore functions now
                 await window.FStore.setDoc(statusRef, newStatus, { merge: true });
                 console.log("Firestore status updated successfully.");
             } catch (error) {
-                console.error("Error setting Firestore document:", error);
+                console.error("Error setting Firestore document. Check Firestore Rules:", error);
             }
         }
 
@@ -306,51 +320,50 @@
          * Sets up the real-time listener for the shop's status.
          */
         window.initializeFirebaseListener = function() {
-            // Check for initialization before proceeding
-            if (!window.db || !window.auth.currentUser) {
-                console.error("Firebase not fully initialized or user not authenticated.");
-                const loadingOverlay = document.getElementById('loading-overlay');
-                loadingOverlay.style.display = 'none';
-                document.getElementById('shop-status-display').textContent = "CONNECTION ERROR";
-                document.getElementById('shop-status-display').className = "mt-2 text-xl font-black rounded-sm tracking-wider text-red-600";
-                return;
+            // Check window.initialAuthToken instead of initialAuthToken
+            isOwnerAuthenticated = !!window.auth.currentUser && !!window.initialAuthToken;
+
+            // Show admin controls only if URL param and successful owner auth occurred
+            if (window.isOwnerMode && isOwnerAuthenticated) {
+                 document.getElementById('admin-controls').classList.remove('hidden');
             }
 
-            // Using window.FStore functions now
+            // Immediately hide loading and set default CLOSED state
+            document.getElementById('loading-overlay').style.display = 'none';
+            isShopOpen = false; // Default safe state for customers
+            updateShopUI(); 
+            renderMenu();
+
+            // Set up listener to pull the real state from the cloud
             const statusRef = window.FStore.doc(window.db, `artifacts/${APP_ID}/public/data/shop_status/current`);
             
-            // Using window.FStore functions now
-            window.FStore.onSnapshot(statusRef, (docSnapshot) => {
-                const loadingOverlay = document.getElementById('loading-overlay');
-                loadingOverlay.style.display = 'none'; // Hide loader on successful state fetch
-
+            const unsubscribe = window.FStore.onSnapshot(statusRef, (docSnapshot) => {
+                
                 if (docSnapshot.exists()) {
                     const data = docSnapshot.data();
                     
                     isShopOpen = data.isShopOpen || false;
                     itemSoldOutStatus = data.itemSoldOutStatus || {};
                 } else {
-                    // CRITICAL FIX: If document doesn't exist (first run), default to CLOSED
+                    // If no document exists, owner must create it.
                     isShopOpen = false;
                     itemSoldOutStatus = {};
                     
-                    // If in owner mode, create the document immediately with the default CLOSED status
-                    if (isOwnerMode) {
-                        updateFirestoreStatus();
+                    if (window.isOwnerMode && isOwnerAuthenticated) {
+                        updateFirestoreStatus(); // Create document on first load if owner is present
                     }
                 }
                 
-                // Now update the UI based on the new global state
+                // Update UI based on the new, real global state
                 updateShopUI();
                 renderMenu();
 
             }, (error) => {
                 console.error("Firestore Listener Error:", error);
-                const loadingOverlay = document.getElementById('loading-overlay');
-                loadingOverlay.style.display = 'none';
-                // Display persistent error message on the main screen
+                // Display persistent error message if the listener fails after initialization
                 document.getElementById('shop-status-display').textContent = "CONNECTION FAILED";
                 document.getElementById('shop-status-display').className = "mt-2 text-xl font-black rounded-sm tracking-wider text-red-600";
+                unsubscribe(); // Stop listening on error
             });
         }
 
@@ -358,32 +371,16 @@
         // --- LOCAL SHOP LOGIC ---
 
         /**
-         * Initializes local status flags (owner mode).
-         */
-        function initializeLocalStatus() {
-             // 1. Check for Owner Access Parameter (?owner=true)
-            const urlParams = new URLSearchParams(window.location.search);
-            isOwnerMode = urlParams.get('owner') === 'true';
-            
-            if (isOwnerMode) {
-                document.getElementById('admin-controls').classList.remove('hidden');
-            }
-        }
-
-
-        /**
          * Toggles the sold-out status for a single item and updates Firestore.
          */
         function toggleItemSoldOut(itemId) {
-            if (!isOwnerMode) return;
+            if (!window.isOwnerMode || !isOwnerAuthenticated) return;
             
             const currentStatus = !!itemSoldOutStatus[itemId]; 
             itemSoldOutStatus[itemId] = !currentStatus;
             
-            // Clear quantity when changing status
-            orderQuantities[itemId] = 0;
+            orderQuantities[itemId] = 0; // Clear quantity when changing status
 
-            // Update centralized database
             updateFirestoreStatus();
         }
 
@@ -391,11 +388,10 @@
          * Toggles the shop's open/closed status and updates Firestore.
          */
         function toggleShopStatus() {
-            if (!isOwnerMode) return;
+            if (!window.isOwnerMode || !isOwnerAuthenticated) return;
             
             isShopOpen = !isShopOpen;
             
-            // Update centralized database
             updateFirestoreStatus();
         }
         
@@ -439,7 +435,7 @@
                     orderQuantities[item.id] = 0;
                 }
 
-                const ownerToggle = isOwnerMode ? `
+                const ownerToggle = (window.isOwnerMode && isOwnerAuthenticated) ? `
                     <button class="relative z-20 ml-4 p-1 text-xs font-semibold rounded-sm transition-colors duration-150 border-2 ${isItemSoldOut ? 'bg-red-600 text-white border-red-800' : 'bg-logo-green text-logo-purple border-logo-purple'}"
                         onclick="event.stopPropagation(); toggleItemSoldOut(${item.id})">
                         ${isItemSoldOut ? 'RE-STOCK' : 'SOLD OUT'}
@@ -621,9 +617,8 @@
         // --- INITIALIZATION ---
         // window.onload only calls initializeShopStatus, which now relies on the Firebase listener firing
         window.onload = () => {
-             // Initialize local flags immediately (like isOwnerMode)
-             initializeLocalStatus();
-             // The Firebase module script will call window.initializeFirebaseListener after auth
+             // The Firebase module script handles the authentication and calls initializeFirebaseListener 
+             // which manages the UI. If Firebase is missing or slow, the initial status is rendered immediately.
         };
 
     </script>
