@@ -74,6 +74,11 @@
             opacity: 0.6; 
             pointer-events: none;
         }
+        /* Custom style for the ice limit warning */
+        .ice-warning {
+            /* The required red, bold, uppercase styles are now combined here for full effect */
+            @apply text-sm font-extrabold text-red-700 bg-red-100 border border-red-700 p-2 mt-2 rounded-sm uppercase;
+        }
     </style>
 </head>
 <body class="bg-logo-gray min-h-screen p-4 font-sans flex justify-center text-text-dark">
@@ -96,7 +101,7 @@
 
             <!-- Full Shop Introduction -->
             <div class="text-center text-base mb-6 border-b border-gray-300 pb-4">
-                <h2 class="text-xl font-bold text-text-dark mb-2">Welcome to Goji Cha!</h2>
+                <h2 class="text-xl font-bold text-text-dark mb-2">👋 Welcome to Goji Cha!</h2>
                 
                 <p class="text-gray-700 mb-2">
                     Order your favorite matcha here 
@@ -107,12 +112,17 @@
                 </p>
                 <!-- Shop Status Display (Customer Facing) -->
                 <div id="shop-status-display" class="mt-2 text-xl font-black rounded-sm tracking-wider"></div>
+                
+                <!-- FIX APPLIED: The text is now correctly styled via the ice-warning class -->
+                <p id="ice-limit-disclaimer" class="ice-warning hidden">
+                    ⚠️ DUE TO THE LIMITATION OF ICE, GOJI CHA CAN ONLY BREW 15 CUPS A DAY.
+                </p>
             </div>
 
             <!-- Admin Guide - Replaces toggles, visible only to owner -->
             <div id="admin-controls" class="text-center mb-6 hidden">
                 <div class="p-3 bg-logo-gray text-white text-sm rounded-none">
-                    ⚠️ **ADMIN MODE:** To change the shop status or sold-out items, you must **edit the `GLOBAL_SHOP_STATUS` variable directly in the `index.html` file on GitHub** and commit the changes.
+                    ⚠️ **ADMIN MODE:** TO CHANGE THE SHOP STATUS OR SOLD-OUT ITEMS, YOU MUST **EDIT THE `GLOBAL_SHOP_STATUS` VARIABLE DIRECTLY IN THE `INDEX.HTML` FILE ON GITHUB** AND COMMIT THE CHANGES.
                 </div>
             </div>
 
@@ -186,7 +196,6 @@
         const GLOBAL_SHOP_STATUS = {
             // Set to true to open the shop, false to close it.
             isShopOpen: true, 
-            // isShopOpen: false, 
             
             // Set the status for each item ID below: true = SOLD OUT, false = IN STOCK
             itemSoldOutStatus: {
@@ -194,6 +203,8 @@
                 2: false, // Strawberry Matcha
                 3: false, // Earl Grey Matcha
                 4: false, // Lemonade Matcha
+                
+                // ADDED NEW FIZZ ITEMS
                 5: false, // Strawberry Fizz
                 6: false, // Lemonade Fizz
             }
@@ -209,12 +220,15 @@
 
         // Define your menu items
         const menu = [
+            // Existing items
             { id: 1, name: "Matcha Latte", price: 10.00, desc: "Classic iced pure matcha, sweetened/unsweetened, & Oatside milk.", imageUrl: "800x800latte.png" },
             { id: 2, name: "Strawberry Matcha", price: 13.00, desc: "Sweet strawberry puree layered with cool matcha & Oatside milk.", imageUrl: "800x800straw.png" },
             { id: 3, name: "Earl Grey Matcha", price: 11.00, desc: "Creamy matcha layered with Earl Grey syrup & Oatside milk.", imageUrl: "800x800earl.png" },
             { id: 4, name: "Lemonade Matcha", price: 12.00, desc: "Tangy fresh sparkling lemonade topped with vibrant matcha.", imageUrl: "800x800lemon.png" },
-            { id: 5, name: "Strawberry Fizz", price: 9.00, desc: "A bubbly blend of sweet strawberry and sparkling water. Perfectly refreshing.", imageUrl: ""https://placehold.co/80x80/FFC107/4CAF50?text=Strawberry" },
-            { id: 6, name: "Lemonade Fizz", price: 9.00, desc: "tangy lemonade energized with carbonation for a zesty, sharp, and effervescent cooler.", imageUrl: ""https://placehold.co/80x80/FFC107/4CAF50?text=LEMON" },
+
+            // NEW FIZZ ITEMS
+            { id: 5, name: "Strawberry Fizz", price: 9.00, desc: "A bubbly blend of sweet strawberry puree and sparkling water, topped with a crisp splash of lime.", imageUrl: "fizz_strawberry.png" },
+            { id: 6, name: "Lemonade Fizz", price: 9.00, desc: "Our classic tangy lemonade energized with carbonation for a zesty, sharp, and effervescent cooler.", imageUrl: "fizz_lemonade.png" },
         ];
         
         // State to track item quantities
@@ -245,17 +259,20 @@
         function updateShopUI() {
             const statusDisplay = document.getElementById('shop-status-display');
             const orderContent = document.getElementById('order-content');
+            const iceDisclaimer = document.getElementById('ice-limit-disclaimer');
             
             if (isShopOpen) {
                 // OPEN state
                 statusDisplay.textContent = "NOW OPEN";
                 statusDisplay.className = "mt-2 text-xl font-black rounded-sm tracking-wider text-logo-green";
                 orderContent.classList.remove('shop-closed');
+                iceDisclaimer.classList.remove('hidden'); // Show disclaimer when open
             } else {
                 // CLOSED state
                 statusDisplay.textContent = "CLOSED";
                 statusDisplay.className = "mt-2 text-xl font-black rounded-sm tracking-wider text-red-600";
                 orderContent.classList.add('shop-closed');
+                iceDisclaimer.classList.add('hidden'); // Hide disclaimer when closed
                 // Reset quantities in memory when closed
                 menu.forEach(item => orderQuantities[item.id] = 0); 
             }
