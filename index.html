@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GojiCha - Awaken Your Inner Kaiju</title>
+    <title>Goji Cha - Dynamic Order Cart</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -33,56 +33,137 @@
         }
     </script>
     <style>
-        /* Custom styles for blocky, retro look */
-        .quantity-btn {
-            @apply p-2 rounded-none text-lg font-bold transition-colors duration-200 bg-text-dark text-white hover:bg-matcha-highlight focus:outline-none focus:ring-2 focus:ring-matcha-highlight;
-            width: 32px;
-            height: 32px; 
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #798799; /* Use the logo gray for buttons */
+        /* Base styles */
+        body {
+            background-color: #E7F2E2;
         }
-        .quantity-btn:hover {
-            background-color: #81EE4A; /* Hover to bright logo green */
-            color: #892F7F; /* Change text color to dark purple on hover for visibility */
-        }
-        .quantity-input {
-            @apply text-center bg-card-bg border border-text-dark rounded-none mx-1 text-text-dark font-medium;
-            width: 40px;
-            height: 32px;
-        }
-        /* Style for the main confirm button */
-        #confirm-button {
-            background-color: #892F7F; 
-            border-color: #798799;
-            box-shadow: 4px 4px 0 #798799; /* Shadow in the monster gray color */
-        }
-        #confirm-button:hover:not(:disabled) {
-            background-color: #81EE4A; /* Hover to bright logo green */
-            color: #892F7F; /* Text to deep purple */
-            box-shadow: 4px 4px 0 #892F7F; /* Shadow to deep purple */
-        }
-        /* Style for sold out items */
-        .sold-out {
-            @apply opacity-50 pointer-events-none;
-        }
-        /* Style for closed shop state */
-        .shop-closed {
-            /* Dim and disable all interaction on the content when closed */
-            opacity: 0.6; 
-            pointer-events: none;
+        .item-button {
+            /* Blocky, high-contrast style for primary actions */
+            @apply py-3 px-6 text-white font-bold rounded-none border-2 border-text-dark transition-all duration-200 shadow-[2px_2px_0_#892F7F] bg-logo-purple hover:bg-logo-green hover:text-text-dark hover:shadow-[3px_3px_0_#892F7F];
         }
         /* Custom style for the ice limit warning */
         .ice-warning {
-            /* The required red, bold, uppercase styles are now combined here for full effect */
             @apply text-sm font-extrabold text-red-700 bg-red-100 border border-red-700 p-2 mt-2 rounded-sm uppercase;
+        }
+        /* Style for sold out items */
+        .sold-out {
+            /* Applies visual dimming and is used with the main content dimmer below */
+            @apply opacity-50;
+        }
+        /* Style for closed shop state (main content dimmer) */
+        .shop-closed {
+            opacity: 0.6; 
+            pointer-events: none; /* Prevents interaction when closed */
+        }
+        /* Modal Backdrop */
+        .app-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        /* Scrollable Modal Body */
+        .modal-body {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        /* FIX: Custom class for manually selected radio button state */
+        .radio-visual.is-selected {
+            background-color: #892F7F; /* logo-purple */
+            color: white;
+            border-color: #892F7F; /* logo-purple */
+        }
+        /* Custom button style for the Cancel button in the modal (Secondary style) */
+        #cancel-customization-btn {
+            /* Base item button reset + secondary style */
+            @apply bg-card-bg text-text-dark border-logo-gray shadow-[2px_2px_0_#798799] hover:bg-gray-100 hover:text-text-dark hover:shadow-[3px_3px_0_#798799];
         }
     </style>
 </head>
 <body class="bg-logo-gray min-h-screen p-4 font-sans flex justify-center text-text-dark">
     
+    <!-- SHOP CLOSED MODAL -->
+    <div id="shop-closed-modal" class="app-modal hidden">
+        <div class="bg-card-bg p-8 border-4 border-red-700 rounded-lg shadow-2xl w-full max-w-sm text-center">
+            <p class="text-6xl mb-4">🚫</p>
+            <h2 class="text-3xl font-extrabold text-red-700 mb-2 uppercase">SHOP IS CLOSED</h2>
+            <p class="text-lg text-text-dark mb-6">
+                We are currently outside of our operating hours.
+            </p>
+            <p class="text-sm text-gray-700 mb-6">
+                Please check back later or during our usual window: <span class="font-bold">1 PM – 2 PM (Lunch Hour)</span>.
+            </p>
+            <button onclick="hideShopClosedModal()"
+                    class="py-3 px-6 bg-logo-gray text-white font-bold rounded-none border-2 border-text-dark hover:bg-text-dark transition-colors">
+                Got It
+            </button>
+        </div>
+    </div>
+    <!-- END SHOP CLOSED MODAL -->
+
+    <!-- CUSTOMIZATION MODAL -->
+    <div id="customization-modal" class="app-modal hidden">
+        <div class="bg-card-bg p-6 border-4 border-text-dark rounded-lg shadow-2xl w-full max-w-sm modal-body">
+            <h2 id="modal-item-name" class="text-2xl font-bold text-text-dark mb-2 text-center"></h2>
+            <p id="modal-item-desc" class="text-gray-700 text-center mb-4"></p>
+            <input type="hidden" id="modal-item-id">
+
+            <div class="space-y-6">
+                
+                <!-- Sweetness Option -->
+                <div>
+                    <label class="block text-xl font-bold mb-3 text-text-dark">🍯 Sweetness</label>
+                    <div id="sweetness-options" class="grid grid-cols-3 gap-2">
+                        <!-- Options injected here -->
+                    </div>
+                </div>
+
+                <!-- Ice Level Option -->
+                <div>
+                    <label class="block text-xl font-bold mb-3 text-text-dark">🧊 Ice Level</label>
+                    <div id="ice-options" class="grid grid-cols-3 gap-2">
+                        <!-- Options injected here -->
+                    </div>
+                </div>
+                
+                <!-- Add-Ons Option -->
+                <div id="addons-section">
+                    <label class="block text-xl font-bold mb-3 text-text-dark">✨ Add-ons</label>
+                    <div id="addons-options" class="space-y-2">
+                        <!-- Options injected here based on item type -->
+                    </div>
+                </div>
+
+                <!-- Customized Price Display -->
+                <div class="flex justify-between items-center text-xl font-bold border-t border-gray-300 pt-4">
+                    <span>Item Price:</span>
+                    <span id="customized-price">RM 0.00</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-6 flex space-x-4">
+                <button onclick="closeCustomizationModal()" 
+                        id="cancel-customization-btn"
+                        class="w-1/3 py-3 font-bold rounded-none border-2 item-button">
+                    Cancel
+                </button>
+                <button onclick="applyCustomization()"
+                        id="add-to-cart-btn"
+                        class="w-2/3 item-button">
+                    Add
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- END CUSTOMIZATION MODAL -->
+
     <div class="w-full max-w-lg bg-card-bg shadow-2xl border-4 border-text-dark rounded-lg overflow-hidden">
         
         <!-- Header - Themed with Poster Art -->
@@ -108,14 +189,14 @@
                 </p>
                 <p class="font-extrabold text-text-dark mt-3">
                     Freshly brew and ready for you!
-                    <span class="block text-sm font-semibold text-gray-700 mt-1">🕘 Open daily: 1 PM – 2 PM</span>
+                    <span class="block text-sm text-gray-700 mt-1">🕘 Open daily: 1 PM – 2 PM</span>
                 </p>
                 <!-- Shop Status Display (Customer Facing) -->
                 <div id="shop-status-display" class="mt-2 text-xl font-black rounded-sm tracking-wider"></div>
                 
                 <!-- Ice Limit Disclaimer -->
                 <p id="ice-limit-disclaimer" class="ice-warning hidden">
-                    ⚠️ DUE TO THE LIMITATION OF ICE, GOJICHA CAN ONLY BREW 15 CUPS A DAY ⚠️
+                    ⚠️ DUE TO THE LIMITATION OF ICE, GOJICHA CAN ONLY BREW 15 CUPS A DAY. ⚠️
                 </p>
             </div>
 
@@ -132,6 +213,15 @@
                 <main id="menu-container" class="space-y-4 mb-6">
                     <!-- Menu items will be injected here by JavaScript -->
                 </main>
+                
+                <!-- Cart Summary Section -->
+                <div class="border-t-4 border-text-dark pt-6 mt-8">
+                    <h2 class="text-2xl font-bold text-text-dark mb-4">🛒 Your Cart</h2>
+                    <div id="cart-summary" class="space-y-3 mb-6 min-h-[50px]">
+                        <!-- Cart items will be rendered here -->
+                        <p class="text-gray-600 text-center py-4 border border-dashed rounded-sm">Cart is empty. Add a customized drink above!</p>
+                    </div>
+                </div>
                 
                 <!-- Customer Name Input -->
                 <div class="mb-6">
@@ -176,7 +266,7 @@
                     </button>
                     
                     <p id="whatsapp-message" class="text-center text-sm text-button-main font-semibold mt-2 hidden">
-                        ERROR: Please set the WhatsApp number in the script.
+                        ERROR: Please set the WhatsApp number in the script before deploying.
                     </p>
                 </div>
             </div>
@@ -195,8 +285,8 @@
         
         const GLOBAL_SHOP_STATUS = {
             // Set to true to open the shop, false to close it.
-             // isShopOpen: true, 
-             isShopOpen: false, 
+            isShopOpen: true, 
+            
             // Set the status for each item ID below: true = SOLD OUT, false = IN STOCK
             itemSoldOutStatus: {
                 1: false, // Matcha Latte
@@ -204,9 +294,15 @@
                 3: false, // Earl Grey Matcha
                 4: false, // Lemonade Matcha
                 
-                // ADDED NEW FIZZ ITEMS
+                // FIZZ ITEMS
                 5: false, // Strawberry Fizz
                 6: false, // Lemonade Fizz
+
+                // --- NEW COFFEE ITEMS ---
+                7: false, // Americano
+                8: false, // Latte
+                9: false, // Caramel Latte
+                10: false, // Spanish Latte
             }
         };
         
@@ -214,25 +310,288 @@
         // END MANUAL SHOP STATUS CONTROL
         // =========================================================================
 
-        // Global State (Read-only variables derived from the config above)
+        // Global State 
         let isShopOpen = GLOBAL_SHOP_STATUS.isShopOpen;
         let itemSoldOutStatus = GLOBAL_SHOP_STATUS.itemSoldOutStatus; 
+        
+        // NEW STATE: Array of customized items in the cart
+        let cartItems = []; 
+        let currentCustomizationBasePrice = 0; // Temp price storage for modal calculations
+
+        // Define customization options with display names and values
+        const CUSTOMIZATION_OPTIONS = {
+            sweetness: [
+                { display: 'Normal', value: 'Normal Sugar' },
+                { display: 'Less', value: 'Less Sugar' },
+                { display: 'None', value: 'No Sugar' },
+            ],
+            ice: [
+                { display: 'Normal', value: 'Normal' },
+                { display: 'Less', value: 'Less' },
+                { display: 'Hot', value: 'Hot' }, // Full list includes 'Hot'
+            ],
+            // Defined type-specific add-ons
+            addons: {
+                matcha: [
+                    { display: 'Extra Matcha Shot', value: 'Extra Shot', price: 3.00 },
+                    { display: 'Coconut Milk Swap', value: 'Coconut Milk', price: 1.50 },
+                    { display: 'Boba Pearls', value: 'Boba', price: 2.00 },
+                ], 
+                coffee: [
+                    { display: 'Extra Shot', value: 'Extra Shot', price: 2.50 },
+                ],
+                fizz: [
+                    { display: 'Extra Syrup', value: 'Extra Syrup', price: 1.00 },
+                    { display: 'Boba Pearls', value: 'Boba', price: 2.00 },
+                ] 
+            }
+        };
 
         // Define your menu items
         const menu = [
-            // Existing items
-            { id: 1, name: "Matcha Latte", price: 10.00, desc: "Classic iced pure matcha, sweetened/unsweetened, & Oatside milk.", imageUrl: "800x800latte.png" },
-            { id: 2, name: "Strawberry Matcha", price: 13.00, desc: "Sweet strawberry puree layered with cool matcha & Oatside milk.", imageUrl: "800x800straw.png" },
-            { id: 3, name: "Earl Grey Matcha", price: 11.00, desc: "Creamy matcha layered with Earl Grey syrup & Oatside milk.", imageUrl: "800x800earl.png" },
-            { id: 4, name: "Lemonade Matcha", price: 12.00, desc: "Tangy fresh sparkling lemonade topped with vibrant matcha.", imageUrl: "800x800lemon.png" },
+            // Existing Matcha items (type: matcha)
+            { id: 1, name: "Matcha Latte", price: 10.00, desc: "Classic iced pure matcha, sweetened/unsweetened, & Oatside milk.", imageUrl: "800x800latte.png", type: 'matcha' },
+            { id: 2, name: "Strawberry Matcha", price: 13.00, desc: "Sweet strawberry puree layered with cool matcha & Oatside milk.", imageUrl: "800x800straw.png", type: 'matcha' },
+            { id: 3, name: "Earl Grey Matcha", price: 11.00, desc: "Creamy matcha layered with Earl Grey syrup & Oatside milk.", imageUrl: "800x800earl.png", type: 'matcha' },
+            { id: 4, name: "Lemonade Matcha", price: 12.00, desc: "Tangy fresh sparkling lemonade topped with vibrant matcha.", imageUrl: "800x800lemon.png", type: 'matcha' },
 
-            // NEW FIZZ ITEMS
-            { id: 5, name: "Strawberry Fizz", price: 9.00, desc: "A bubbly blend of sweet strawberry and sparkling water.", imageUrl: "https://placehold.co/80x80/FFC107/4CAF50?text=STRAW" },
-            { id: 6, name: "Lemonade Fizz", price: 9.00, desc: "Classic tangy lemonade energized with carbonation for a zesty, sharp, and effervescent cooler.", imageUrl: "https://placehold.co/80x80/FFC107/4CAF50?text=LEMON" },
+            // NEW FIZZ ITEMS (type: fizz)
+            { id: 5, name: "Strawberry Fizz", price: 9.00, desc: "A bubbly blend of sweet strawberry puree and sparkling water, topped with a crisp splash of lime.", imageUrl: "fizz_strawberry.png", type: 'fizz' },
+            { id: 6, name: "Lemonade Fizz", price: 9.00, desc: "Our classic tangy lemonade energized with carbonation for a zesty, sharp, and effervescent cooler.", imageUrl: "fizz_lemonade.png", type: 'fizz' },
+
+            // --- NEW COFFEE ITEMS (type: coffee) ---
+            { id: 7, name: "Americano", price: 9.00, desc: "Bold espresso diluted with hot water, served over ice.", imageUrl: "coffee_americano.png", type: 'coffee' },
+            { id: 8, name: "Latte", price: 10.00, desc: "Espresso with creamy steamed milk, lightly sweetened.", imageUrl: "coffee_latte.png", type: 'coffee' },
+            { id: 9, name: "Caramel Latte", price: 11.00, desc: "Sweet latte infused with rich caramel syrup.", imageUrl: "coffee_latte_caramel.png", type: 'coffee' },
+            { id: 10, name: "Spanish Latte", price: 11.00, desc: "Rich espresso mixed with condensed milk and regular milk.", imageUrl: "coffee_latte_spanish.png", type: 'coffee' },
         ];
         
-        // State to track item quantities
-        const orderQuantities = {}; 
+        // --- UTILITY FUNCTIONS ---
+        
+        // Generates a simple unique ID for cart items
+        function generateUniqueId() {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        }
+
+        // --- MODAL CONTROL ---
+
+        function showShopClosedModal() {
+            document.getElementById('shop-closed-modal').classList.remove('hidden');
+        }
+
+        window.hideShopClosedModal = function() {
+            document.getElementById('shop-closed-modal').classList.add('hidden');
+        }
+
+        /**
+         * Manually handles the visual selection state for radio buttons.
+         */
+        window.handleRadioSelection = function(clickedLabel, groupName) {
+            // 1. Unselect all visuals in this group
+            document.querySelectorAll(`[data-group="${groupName}"] .radio-visual`).forEach(span => {
+                span.classList.remove('is-selected');
+            });
+
+            // 2. Select the visual for the clicked item
+            const visualSpan = clickedLabel.querySelector('.radio-visual');
+            const radioInput = clickedLabel.querySelector('input[type="radio"]');
+            
+            if (visualSpan && radioInput) {
+                visualSpan.classList.add('is-selected');
+                // Ensure the hidden input is checked and trigger price update
+                radioInput.checked = true; 
+                updateCustomizedPrice();
+            }
+        }
+
+
+        // --- CUSTOMIZATION LOGIC ---
+
+        /**
+         * Renders customization options into the modal.
+         */
+        function renderCustomizationRadios(type, options, containerId, defaultValue) {
+            const container = document.getElementById(containerId);
+            
+            // Determine the actual default value. If the provided defaultValue is not in options, use the first one.
+            const defaultExists = options.some(opt => opt.value === defaultValue);
+            const finalDefaultValue = defaultExists ? defaultValue : options[0]?.value;
+
+            container.innerHTML = options.map(option => `
+                <!-- FIX: Added data-group for JS selection management -->
+                <label class="block cursor-pointer radio-option" data-group="${type}" onclick="handleRadioSelection(this, '${type}')">
+                    <input type="radio" name="${type}" value="${option.value}" class="hidden" 
+                        ${option.value === finalDefaultValue ? 'checked' : ''}
+                        data-price="${option.price || 0}">
+                    <!-- FIX: Removed inline 'checked:' classes to avoid conflict -->
+                    <span class="radio-visual block text-center p-2 text-sm border-2 border-text-dark rounded-none bg-card-bg text-text-dark transition-colors 
+                                 hover:bg-logo-green hover:text-logo-purple">
+                        ${option.display} 
+                        ${option.price ? `(+RM ${option.price.toFixed(2)})` : ''}
+                    </span>
+                </label>
+            `).join('');
+            
+            // Initial selection styling based on default value
+            container.querySelector(`input[name="${type}"][value="${finalDefaultValue}"]`)?.nextElementSibling.classList.add('is-selected');
+            
+            // Also attach price calculation to the inputs, although the handler calls it too
+            container.querySelectorAll(`input[name="${type}"]`).forEach(input => {
+                input.onchange = updateCustomizedPrice; 
+            });
+        }
+
+        /**
+         * Renders addon checkboxes.
+         */
+        function renderAddons(options) {
+            const container = document.getElementById('addons-options');
+            container.innerHTML = options.map(addon => `
+                <label class="flex items-center space-x-2 p-2 border-2 border-text-dark bg-card-bg cursor-pointer transition-colors hover:bg-gray-100">
+                    <input type="checkbox" name="addon" value="${addon.value}" 
+                           data-price="${addon.price.toFixed(2)}" 
+                           onchange="updateCustomizedPrice()" 
+                           class="form-checkbox text-logo-purple h-5 w-5 border-text-dark focus:ring-logo-purple rounded-none">
+                    <span class="text-text-dark flex-grow">${addon.display}</span>
+                    <span class="text-logo-green font-bold text-base">+RM ${addon.price.toFixed(2)}</span>
+                </label>
+            `).join('');
+        }
+
+        /**
+         * Updates the price display in the modal based on selected options.
+         */
+        function updateCustomizedPrice() {
+            let runningTotal = currentCustomizationBasePrice;
+
+            // Add-ons calculation
+            document.querySelectorAll('#addons-options input[name="addon"]:checked').forEach(checkbox => {
+                runningTotal += parseFloat(checkbox.dataset.price);
+            });
+
+            document.getElementById('customized-price').textContent = `RM ${runningTotal.toFixed(2)}`;
+        }
+
+
+        /**
+         * Opens the modal for customizing a specific item.
+         */
+        window.openCustomizationModal = function(itemId) {
+            const item = menu.find(i => i.id === itemId);
+            if (!item) return;
+
+            document.getElementById('modal-item-name').textContent = item.name;
+            document.getElementById('modal-item-desc').textContent = item.desc;
+            document.getElementById('modal-item-id').value = item.id;
+            
+            currentCustomizationBasePrice = item.price;
+            
+            // --- DYNAMIC SWEETNESS OPTIONS LOGIC (NEW) ---
+            // IDs of drinks that CANNOT have the 'No Sugar' option
+            const NO_SUGAR_RESTRICTED_IDS = [2, 3, 4, 5, 6, 9, 10]; 
+            let sweetnessOptions = CUSTOMIZATION_OPTIONS.sweetness;
+            
+            // Filter out 'No Sugar' option if the item ID is restricted
+            if (NO_SUGAR_RESTRICTED_IDS.includes(item.id)) {
+                sweetnessOptions = sweetnessOptions.filter(option => option.value !== 'No Sugar');
+            }
+            // --- END DYNAMIC SWEETNESS OPTIONS ---
+
+
+            // --- DYNAMIC ICE OPTIONS LOGIC (EXISTING) ---
+            let iceOptions = CUSTOMIZATION_OPTIONS.ice;
+            
+            // IDs of drinks that CAN have the HOT option: 1 (Matcha Latte), 3 (Earl Grey Matcha), 7, 8, 9, 10 (Coffee)
+            const HOT_OPTION_INCLUSION_IDS = [1, 3, 7, 8, 9, 10]; 
+
+            // If the item is NOT in the inclusion list, remove the 'Hot' option.
+            if (!HOT_OPTION_INCLUSION_IDS.includes(item.id)) {
+                iceOptions = iceOptions.filter(option => option.value !== 'Hot');
+            }
+            // --- END DYNAMIC ICE OPTIONS ---
+
+            // Render Sweetness using the potentially filtered list
+            renderCustomizationRadios('sweetness', sweetnessOptions, 'sweetness-options', 'Normal Sugar');
+            
+            // Render filtered Ice options
+            renderCustomizationRadios('ice', iceOptions, 'ice-options', 'Normal');
+            
+            // Render type-specific Add-ons based on item.type
+            const addonsForType = CUSTOMIZATION_OPTIONS.addons[item.type] || [];
+            const addonsSection = document.getElementById('addons-section');
+
+            if (addonsForType.length > 0) {
+                renderAddons(addonsForType);
+                addonsSection.classList.remove('hidden');
+            } else {
+                // Hide add-ons section if none are available for this type
+                addonsSection.classList.add('hidden');
+                document.getElementById('addons-options').innerHTML = '';
+            }
+
+            // Initial price update
+            updateCustomizedPrice(); 
+
+            document.getElementById('customization-modal').classList.remove('hidden');
+        }
+
+        /**
+         * Closes the modal.
+         */
+        function closeCustomizationModal() {
+            document.getElementById('customization-modal').classList.add('hidden');
+        }
+
+        /**
+         * Takes customization from modal and adds a new, unique item to the cart.
+         */
+        function applyCustomization() {
+            const itemId = parseInt(document.getElementById('modal-item-id').value);
+            const item = menu.find(i => i.id === itemId);
+            
+            if (!item) return;
+
+            // Gather customization details
+            const sweetness = document.querySelector('input[name="sweetness"]:checked')?.value || 'Normal Sugar';
+            const ice = document.querySelector('input[name="ice"]:checked')?.value || 'Normal';
+            
+            const selectedAddons = [];
+            let addonsCost = 0;
+            
+            // Note: This query still works because only relevant checkboxes are rendered
+            document.querySelectorAll('#addons-options input[name="addon"]:checked').forEach(checkbox => {
+                selectedAddons.push(checkbox.value);
+                addonsCost += parseFloat(checkbox.dataset.price);
+            });
+
+            const totalPrice = item.price + addonsCost;
+
+            // Create unique cart item object
+            const newCartItem = {
+                cartId: generateUniqueId(),
+                itemId: item.id,
+                name: item.name,
+                basePrice: item.price,
+                totalPrice: totalPrice,
+                customizations: {
+                    sweetness: sweetness,
+                    ice: ice,
+                    addons: selectedAddons
+                }
+            };
+
+            cartItems.push(newCartItem);
+            closeCustomizationModal();
+            renderCartSummary();
+        }
+
+        /**
+         * Removes an item from the cart by its unique cartId.
+         */
+        window.removeCartItem = function(cartId) {
+            cartItems = cartItems.filter(item => item.cartId !== cartId);
+            renderCartSummary();
+        }
 
         // --- SHOP STATUS LOGIC (Simplified) ---
         
@@ -251,6 +610,12 @@
             // 2. Update UI based on the static config
             updateShopUI();
             renderMenu(isOwnerMode); 
+            renderCartSummary(); 
+            
+            // 3. Show closed modal ONCE on load if the shop is closed
+            if (!isShopOpen) {
+                showShopClosedModal();
+            }
         }
         
         /**
@@ -266,34 +631,38 @@
                 statusDisplay.textContent = "NOW OPEN";
                 statusDisplay.className = "mt-2 text-xl font-black rounded-sm tracking-wider text-logo-green";
                 orderContent.classList.remove('shop-closed');
-                iceDisclaimer.classList.remove('hidden'); // Show disclaimer when open
+                iceDisclaimer.classList.remove('hidden'); 
+                hideShopClosedModal(); // Hide modal if shop opens
             } else {
                 // CLOSED state
-                statusDisplay.textContent = "SORRY, WE'RE CLOSED!";
+                statusDisplay.textContent = "SORRY! WE'RE CLOSED";
                 statusDisplay.className = "mt-2 text-xl font-black rounded-sm tracking-wider text-red-600";
                 orderContent.classList.add('shop-closed');
-                iceDisclaimer.classList.add('hidden'); // Hide disclaimer when closed
-                // Reset quantities in memory when closed
-                menu.forEach(item => orderQuantities[item.id] = 0); 
+                iceDisclaimer.classList.add('hidden'); 
+                
+                // Reset cart and prevent new orders
+                cartItems = []; 
             }
             
-            updateSummary();
+            // Must re-render menu to correctly enable/disable buttons
+            renderMenu(document.getElementById('admin-controls').classList.contains('hidden') ? false : true);
+            renderCartSummary();
         }
 
         // --- CORE FUNCTIONS ---
 
+        /**
+         * Renders the main menu, now applying disabled state to buttons when needed.
+         */
         function renderMenu(isOwnerMode) {
             const container = document.getElementById('menu-container');
             container.innerHTML = menu.map(item => {
                 const isItemSoldOut = itemSoldOutStatus[item.id] || false;
+                // Determine disabled status based on global shop status AND item stock
                 const isDisabled = isItemSoldOut || !isShopOpen; 
                 const soldOutClass = isItemSoldOut ? 'sold-out' : ''; 
                 
-                if (isDisabled) {
-                    orderQuantities[item.id] = 0;
-                }
-
-                // Owner status text display (no longer a toggle)
+                // Owner status text display
                 const ownerStatus = isOwnerMode ? `
                     <div class="relative z-20 ml-4 p-1 text-xs font-semibold rounded-sm transition-colors duration-150 border-2 ${isItemSoldOut ? 'bg-red-600 text-white border-red-800' : 'bg-logo-green text-logo-purple border-logo-purple'}">
                         ${isItemSoldOut ? 'SOLD OUT' : 'IN STOCK'}
@@ -318,7 +687,7 @@
                                  alt="${item.name}" 
                                  class="w-20 h-20 object-cover rounded-none mr-4 flex-shrink-0 border-2 border-text-dark">
 
-                            <!-- Text Details and Quantity Controls Container -->
+                            <!-- Text Details and Button Container -->
                             <div class="flex-grow min-w-0 flex flex-col justify-between">
                                 
                                 <!-- Details -->
@@ -327,34 +696,19 @@
                                     <p class="text-sm text-gray-700">${item.desc}</p>
                                 </div>
 
-                                <!-- Price and Quantity Controls -->
+                                <!-- Price and Action Controls -->
                                 <div class="flex justify-between items-center mt-1">
                                     <p class="text-xl font-bold text-matcha-highlight">RM ${item.price.toFixed(2)}</p>
                                     
                                     <!-- OWNER STATUS DISPLAY -->
                                     ${ownerStatus}
                                     
-                                    <!-- Quantity Controls (Disabled if sold out) -->
-                                    <div class="flex items-center space-x-1 ml-auto">
-                                        <button class="quantity-btn" 
-                                                onclick="updateQuantity(${item.id}, -1)"
-                                                ${isDisabled ? 'disabled' : ''}>
-                                            &minus;
-                                        </button>
-                                        
-                                        <input type="number" 
-                                                id="qty-${item.id}" 
-                                                value="${orderQuantities[item.id] || 0}" 
-                                                min="0" 
-                                                readonly 
-                                                class="quantity-input">
-                                                
-                                        <button class="quantity-btn" 
-                                                onclick="updateQuantity(${item.id}, 1)"
-                                                ${isDisabled ? 'disabled' : ''}>
-                                            &plus;
-                                        </button>
-                                    </div>
+                                    <!-- CUSTOMIZE & ADD BUTTON (Updated Text & respects isDisabled) -->
+                                    <button onclick="openCustomizationModal(${item.id})"
+                                            ${isDisabled ? 'disabled' : ''}
+                                            class="ml-auto py-2 px-4 text-sm item-button disabled:bg-gray-400 disabled:shadow-[2px_2px_0_#9CA3AF]">
+                                        Add
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -363,44 +717,61 @@
             }).join('');
         }
 
-        function updateQuantity(itemId, change) {
-            const isItemSoldOut = itemSoldOutStatus[itemId] || false;
-            if (isItemSoldOut || !isShopOpen) return;
-            
-            let currentQty = orderQuantities[itemId] || 0;
-            let newQty = currentQty + change;
-            
-            if (newQty < 0) {
-                newQty = 0;
-            }
-            
-            orderQuantities[itemId] = newQty;
-            document.getElementById(`qty-${itemId}`).value = newQty;
-            
-            updateSummary();
-        }
-
-        function updateSummary() {
+        /**
+         * Renders the current list of customized items in the cart summary.
+         */
+        function renderCartSummary() {
+            const container = document.getElementById('cart-summary');
             let totalCost = 0;
-            let totalItems = 0; 
 
-            menu.forEach(item => {
-                const qty = orderQuantities[item.id] || 0;
-                const isItemSoldOut = itemSoldOutStatus[item.id] || false;
-                
-                if (!isItemSoldOut) {
-                    totalCost += qty * item.price;
-                    totalItems += qty;
-                }
-            });
+            if (cartItems.length === 0) {
+                container.innerHTML = '<p class="text-gray-600 text-center py-4 border border-dashed rounded-sm">Cart is empty. Add a customized drink above!</p>';
+            } else {
+                container.innerHTML = cartItems.map((item) => {
+                    totalCost += item.totalPrice;
+                    
+                    // Format customizations into an easy-to-read list
+                    const customList = [
+                        item.customizations.sweetness,
+                        // Ensure 'Hot' is displayed without ' Ice' suffix
+                        item.customizations.ice === 'Hot' ? item.customizations.ice : item.customizations.ice + ' Ice',
+                        ...item.customizations.addons
+                    ].join(' • ');
 
+                    return `
+                        <div class="flex justify-between items-center p-3 border-2 border-logo-gray bg-white rounded-none">
+                            <div class="flex-grow min-w-0">
+                                <p class="font-semibold text-text-dark">${item.name}</p>
+                                <p class="text-xs text-gray-600 truncate">${customList}</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-lg font-bold text-logo-purple">RM ${item.totalPrice.toFixed(2)}</span>
+                                <button onclick="removeCartItem('${item.cartId}')" 
+                                        class="p-1 text-sm text-white bg-red-600 rounded-sm hover:bg-red-700">
+                                    &times;
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Update final total and button status
             document.getElementById('total-price').textContent = `RM ${totalCost.toFixed(2)}`;
             const confirmBtn = document.getElementById('confirm-button');
-            confirmBtn.disabled = totalItems === 0 || !isShopOpen; 
+            confirmBtn.disabled = cartItems.length === 0 || !isShopOpen; 
         }
 
+        /**
+         * Generates the order message and redirects to WhatsApp.
+         */
         function confirmOrder() {
-            if (!isShopOpen) return; 
+            // Check if shop is open again (redundant if button is disabled, but safe)
+            if (!isShopOpen || cartItems.length === 0) {
+                // If shop is closed, show modal if it's not already visible.
+                if (!isShopOpen) showShopClosedModal(); 
+                return; 
+            }
 
             if (WHATSAPP_NUMBER === "60123456789") {
                 document.getElementById('whatsapp-message').classList.remove('hidden');
@@ -418,7 +789,7 @@
                 return;
             }
 
-            // FIX: Updated locale options to include the date (day/month/year)
+            // Capture full date and time
             const timestamp = new Date().toLocaleTimeString('en-US', { 
                 year: 'numeric', 
                 month: 'numeric', 
@@ -429,50 +800,43 @@
                 hour12: false 
             });
             
-            const orderedItems = [];
             let totalCost = 0;
             
-            menu.forEach(item => {
-                const isItemSoldOut = itemSoldOutStatus[item.id] || false;
-                if (isItemSoldOut) return; 
-
-                const qty = orderQuantities[item.id];
-                if (qty > 0) {
-                    const lineTotal = qty * item.price;
-                    orderedItems.push({
-                        name: item.name,
-                        qty: qty,
-                        price: item.price,
-                        total: lineTotal
-                    });
-                    totalCost += lineTotal;
-                }
-            });
-
-            if (orderedItems.length === 0) {
-                console.error("No items selected.");
-                return;
-            }
-
-            // Message now includes the full date and time
-            let message = `☢️ NEW ORDER (${timestamp}) from Goji Cha! ☢️\n`;
+            // 1. Start message construction
+            let message = `☢️ NEW ORDER (${timestamp}) from GojiCha! ☢️\n`;
             message += `CUSTOMER: ${customerName}\n`;
             message += `PICKUP: Level 17 \n\n`; 
-            message += "--- Customer Order ---\n";
+            message += "--- Customer Order (Detailed) ---\n";
             
-            orderedItems.forEach(item => {
-                message += `${item.qty}x ${item.name} (RM ${(item.qty * item.price).toFixed(2)})\n`;
+            // 2. Iterate through each item instance in the cart
+            cartItems.forEach((item, index) => {
+                totalCost += item.totalPrice;
+                
+                // Construct customization details string for WhatsApp
+                const customDetails = [];
+                customDetails.push(`Sweetness: ${item.customizations.sweetness}`);
+                
+                // Handle 'Hot' display for WhatsApp
+                const tempDisplay = item.customizations.ice === 'Hot' ? 'Hot' : `${item.customizations.ice} Ice`;
+                customDetails.push(`Temperature: ${tempDisplay}`);
+
+                if (item.customizations.addons.length > 0) {
+                    customDetails.push(`Add-ons: ${item.customizations.addons.join(', ')}`);
+                }
+                
+                message += `${index + 1}. ${item.name} (RM ${item.totalPrice.toFixed(2)})\n`;
+                message += `   - ${customDetails.join('\n   - ')}\n`;
             });
             
             message += `---------------------------\n`;
-            message += `Total Due: RM ${totalCost.toFixed(2)}\n\n`;
+            message += `TOTAL DUE: RM ${totalCost.toFixed(2)}\n\n`;
 
             if (orderNotes) {
                 message += `*** SPECIAL NOTES: ***\n`;
                 message += `${orderNotes}\n\n`;
             }
             
-            message += "Hi Goji Cha! Please confirm the availability and my pickup time.";
+            message += "Hi GojiCha! Please confirm the availability and my pickup time.";
             
             console.log("Generated Message:", message);
             
