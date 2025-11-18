@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Goji Cha - Dynamic Order Cart</title>
+    <title>GojiCha - Awaken Your Inner Kaiju</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -285,7 +285,8 @@
         
         const GLOBAL_SHOP_STATUS = {
             // Set to true to open the shop, false to close it.
-            isShopOpen: false, 
+            //isShopOpen: false, 
+            isShopOpen: true,
             
             // Set the status for each item ID below: true = SOLD OUT, false = IN STOCK
             itemSoldOutStatus: {
@@ -361,7 +362,7 @@
 
             // --- NEW COFFEE ITEMS (type: coffee) ---
             { id: 7, name: "Americano", price: 9.00, desc: "Bold espresso diluted with hot water, served over ice.", imageUrl: "coffee_americano.png", type: 'coffee' },
-            { id: 8, name: "Latte", price: 10.00, desc: "Espresso with creamy steamed milk, lightly sweetened.", imageUrl: "coffee_latte.png", type: 'coffee' },
+            { id: 8, name: "Latte", price: 10.00, desc: "Espresso with creamy steamed milk", imageUrl: "coffee_latte.png", type: 'coffee' },
             { id: 9, name: "Caramel Latte", price: 11.00, desc: "Sweet latte infused with rich caramel syrup.", imageUrl: "coffee_latte_caramel.png", type: 'coffee' },
             { id: 10, name: "Spanish Latte", price: 11.00, desc: "Rich espresso mixed with condensed milk and regular milk.", imageUrl: "coffee_latte_spanish.png", type: 'coffee' },
         ];
