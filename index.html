@@ -3,7 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GojiCha - Awaken Your Inner Kaiju</title>
+    <title>Goji Cha - Awaken Your Inner Kaiju</title>
+    
+    <!-- PWA MANIFEST LINK (RESTORED for Add to Home Screen function) -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS Specific Meta Tags (RESTORED) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GojiCha Order">
+    
+    <!-- iOS Icons (RESTORED - Used when adding to home screen) -->
+    <link rel="apple-touch-icon" href="gojicha-192.png"> 
+    <link rel="apple-touch-icon" sizes="180x180" href="gojicha-180.png"> 
+
+    <!-- Theme Color for Browser/OS integration (RESTORED) -->
+    <meta name="theme-color" content="#892F7F">
+
+    <!-- NOTE: The <link rel="icon"> (favicon for browser tab) has been removed. -->
+
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -199,6 +217,7 @@
                     ⚠️ DUE TO THE LIMITATION OF ICE, GOJICHA CAN ONLY BREW 15 CUPS A DAY. ⚠️
                 </p>
             </div>
+            
 
             <!-- Admin Guide - Replaces toggles, visible only to owner -->
             <div id="admin-controls" class="text-center mb-6 hidden">
@@ -285,8 +304,8 @@
         
         const GLOBAL_SHOP_STATUS = {
             // Set to true to open the shop, false to close it.
-            //isShopOpen: false, 
             isShopOpen: true,
+            // isShopOpen: false,
             
             // Set the status for each item ID below: true = SOLD OUT, false = IN STOCK
             itemSoldOutStatus: {
@@ -315,6 +334,8 @@
         let isShopOpen = GLOBAL_SHOP_STATUS.isShopOpen;
         let itemSoldOutStatus = GLOBAL_SHOP_STATUS.itemSoldOutStatus; 
         
+        // NO PWA DEFERRED PROMPT HERE 
+
         // NEW STATE: Array of customized items in the cart
         let cartItems = []; 
         let currentCustomizationBasePrice = 0; // Temp price storage for modal calculations
@@ -333,18 +354,18 @@
             ],
             // Defined type-specific add-ons
             addons: {
-                /*matcha: [
+                matcha: [
                     { display: 'Extra Matcha Shot', value: 'Extra Shot', price: 3.00 },
                     { display: 'Coconut Milk Swap', value: 'Coconut Milk', price: 1.50 },
                     { display: 'Boba Pearls', value: 'Boba', price: 2.00 }, 
-                ], */
+                ], 
                 coffee: [
                     { display: 'Extra Shot', value: 'Extra Shot', price: 2.50 },
-                ] /*,
+                ],
                 fizz: [
                     { display: 'Extra Syrup', value: 'Extra Syrup', price: 1.00 },
                     { display: 'Boba Pearls', value: 'Boba', price: 2.00 },
-                ] */
+                ] 
             }
         };
 
@@ -487,7 +508,7 @@
             
             currentCustomizationBasePrice = item.price;
             
-            // --- DYNAMIC SWEETNESS OPTIONS LOGIC (NEW) ---
+            // --- DYNAMIC SWEETNESS OPTIONS LOGIC ---
             // IDs of drinks that CANNOT have the 'No Sugar' option
             const NO_SUGAR_RESTRICTED_IDS = [2, 3, 4, 5, 6, 9, 10]; 
             let sweetnessOptions = CUSTOMIZATION_OPTIONS.sweetness;
@@ -499,7 +520,7 @@
             // --- END DYNAMIC SWEETNESS OPTIONS ---
 
 
-            // --- DYNAMIC ICE OPTIONS LOGIC (EXISTING) ---
+            // --- DYNAMIC ICE OPTIONS LOGIC ---
             let iceOptions = CUSTOMIZATION_OPTIONS.ice;
             
             // IDs of drinks that CAN have the HOT option: 1 (Matcha Latte), 3 (Earl Grey Matcha), 7, 8, 9, 10 (Coffee)
@@ -617,6 +638,32 @@
             if (!isShopOpen) {
                 showShopClosedModal();
             }
+
+            // 4. PWA Manifest generation (RESTORED)
+            const manifestData = {
+                "name": "GojiCha Order",
+                "short_name": "GojiCha",
+                "description": "Mobile ordering system for GojiCha Pop-up.",
+                "start_url": ".",
+                "display": "standalone",
+                "background_color": "#E7F2E2",
+                "theme_color": "#892F7F",
+                "icons": [
+                    {
+                        "src": "gojicha-192.png",
+                        "sizes": "192x192",
+                        "type": "image/png"
+                    },
+                    {
+                        "src": "gojicha-512.png",
+                        "sizes": "512x512",
+                        "type": "image/png"
+                    }
+                ]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            document.querySelector('link[rel="manifest"]').setAttribute('href', manifestUrl);
         }
         
         /**
@@ -811,7 +858,7 @@
             
             // 2. Iterate through each item instance in the cart
             cartItems.forEach((item, index) => {
-                totalCost += item.totalPrice;
+                totalCost += item.totalPrice; 
                 
                 // Construct customization details string for WhatsApp
                 const customDetails = [];
